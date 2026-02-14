@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: rust-controller
+spec:
+  serviceAccountName: rust-sa
+  containers:
+  - name: rust-controller
+    image: rust-controller:latest
+    imagePullPolicy: IfNotPresent
