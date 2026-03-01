@@ -1,37 +1,40 @@
-// Use this file to process a parquet file
 package main
-
 import (
 	"fmt"
-	"os"
+	"log"
 
-	"github.com/segmentio/parquet-go"
+	"github.com/xitongsys/parquet-go-source/local"
+	"github.com/xitongsys/parquet-go/reader"
 )
-
-type RowType struct {
-	MinTemp		float64		`parquet:"MinTemp"`
-	MaxTemp		float64		`parquet:"MixTemp"`
+type Weather struct {
+	// MaxTemp float64 `parquet:"name=MaxTemp, type=DOUBLE"`
+	// MinTemp  float64  `parquet:"name=MinTemp, type=DOUBLE"`
+	// WindSpeed3pm int64 `parquet:"name=WindSpeed3pm, type=INT64"`
+	WindGustDir string `parquet:"name=WindGustDir, type=BYTE_ARRAY"`
 }
 
 func main() {
-	fmt.Println("Hello world!")
-	file, err := os.Open("../data/weather.parquet")
-	
+	fr, err := local.NewLocalFileReader("../data/weather.parquet")
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Fatal(err)
+	}
+	defer fr.Close()
+
+	pr, err := reader.NewParquetReader(fr, new(Weather), 4)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer pr.ReadStop()
+
+	num := int(pr.GetNumRows())
+	fmt.Println("Total rows:", num)
+
+	weather := make([]Weather, num)
+	if err = pr.Read(&weather); err != nil {
+		log.Fatal(err)
 	}
 
-	defer file.Close()
-
-	reader := parquet.NewReader(file)
-
-	var rows []RowType
-	err = reader.Read(&rows)
-	if err != nil {
-		fmt.Println(err.Error())
-	}
-
-	for _, row := range rows {
-		fmt.Printf("max temp: %f, min temp: %f", row.MaxTemp, row.MinTemp)
+	for _, w := range weather {
+		fmt.Println(w.WindGustDir)
 	}
 }
